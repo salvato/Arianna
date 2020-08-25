@@ -55,18 +55,6 @@
 GraphicsView::GraphicsView() {
     setWindowTitle(tr("Boxes"));
     setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-/*
-    udpPort = 37755;
-    pUdpSocket = new QUdpSocket(this);
-    if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
-        qDebug() << QString("Unable to bind... EXITING");
-        exit(-1);
-    }
-
-    // Network UDP events
-    connect(pUdpSocket, SIGNAL(readyRead()),
-            this, SLOT(onReadPendingDatagrams()));
-*/
 }
 
 
@@ -75,44 +63,5 @@ GraphicsView::resizeEvent(QResizeEvent *event) {
     if(scene())
         scene()->setSceneRect(QRect(QPoint(0, 0), event->size()));
     QGraphicsView::resizeEvent(event);
-}
-
-
-void
-GraphicsView::executeCommand(QString command) {
-/*
-    QStringList tokens = command.split(' ');
-    tokens.removeFirst();
-    char cmd = command.at(0).toLatin1();
-    if(cmd == 'q') { // It is a Quaternion !
-        if(tokens.count() == 4) {
-            q0 = tokens.at(0).toDouble();
-            q1 = tokens.at(1).toDouble();
-            q2 = tokens.at(2).toDouble();
-            q3 = tokens.at(3).toDouble();
-            pGLWidget->setRotation(q0, q1, q2, q3);
-        }
-    }
-*/
-}
-
-
-void
-GraphicsView::onReadPendingDatagrams() {
-/*
-    while(pUdpSocket->hasPendingDatagrams()) {
-        QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
-        QString sReceived = QString(datagram.data());
-        QString sNewCommand;
-        int iPos;
-        iPos = sReceived.indexOf("#");
-        while(iPos != -1) {
-            sNewCommand = sReceived.left(iPos);
-            executeCommand(sNewCommand);
-            sReceived = sReceived.mid(iPos+1);
-            iPos = sReceived.indexOf("#");
-        }
-    }
-*/
 }
 

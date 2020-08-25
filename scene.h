@@ -59,6 +59,9 @@
 #include "itemdialog.h"
 #include "renderoptionsdialog.h"
 
+#include <QtWidgets>
+#include <QUdpSocket>
+
 
 QT_BEGIN_NAMESPACE
 class QMatrix4x4;
@@ -80,6 +83,7 @@ public slots:
     void setColorParameter(const QString &name, QRgb color);
     void setFloatParameter(const QString &name, float value);
     void newItem(ItemDialog::ItemType type);
+    void onReadPendingDatagrams();
 
 protected:
     void renderBoxes(const QMatrix4x4 &view, int excludeBox = -2);
@@ -92,6 +96,8 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
     void wheelEvent(QGraphicsSceneWheelEvent * event) override;
+
+    void executeCommand(QString command);
 
 private:
     void initGL();
@@ -123,4 +129,9 @@ private:
     QVector<QGLShader *> m_fragmentShaders;
     QGLShader *m_environmentShader;
     QGLShaderProgram *m_environmentProgram;
+
+    QUdpSocket*  pUdpSocket;
+    int          udpPort;
+    double       q0, q1, q2, q3;
+    int          nTextures;
 };

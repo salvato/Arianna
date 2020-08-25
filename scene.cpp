@@ -55,6 +55,7 @@
 #include <QRandomGenerator>
 #include <QVector3D>
 #include <qmath.h>
+#include <QNetworkDatagram>
 
 #include "3rdparty/fbm.h"
 
@@ -83,6 +84,7 @@ Scene::Scene(int width, int height, int maxTextureSize)
     , m_environmentProgram(nullptr)
 {
     setSceneRect(0, 0, width, height);
+    nTextures = 0;
 
     m_trackBalls[0] = TrackBall(0.05f,  QVector3D(0, 1, 0), TrackBall::Sphere);
     m_trackBalls[1] = TrackBall(0.005f, QVector3D(0, 0, 1), TrackBall::Sphere);
@@ -108,17 +110,23 @@ Scene::Scene(int width, int height, int maxTextureSize)
     connect(m_renderOptions, &RenderOptionsDialog::doubleClicked, twoSided, &TwoSidedGraphicsWidget::flip);
     connect(m_itemDialog, &ItemDialog::doubleClicked, twoSided, &TwoSidedGraphicsWidget::flip);
 
-    addItem(new QtBox(64, width - 64, height - 64));
-    addItem(new QtBox(64, width - 64, 64));
-    addItem(new QtBox(64, 64, height - 64));
-    addItem(new QtBox(64, 64, 64));
-
     initGL();
 
     m_timer = new QTimer(this);
     m_timer->setInterval(20);
     connect(m_timer, &QTimer::timeout, this, [this](){ update(); });
     m_timer->start();
+
+    udpPort = 37755;
+    pUdpSocket = new QUdpSocket(this);
+    if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
+        qDebug() << QString("Unable to bind... EXITING");
+        exit(-1);
+    }
+
+    // Network UDP events
+    connect(pUdpSocket, SIGNAL(readyRead()),
+            this, SLOT(onReadPendingDatagrams()));
 }
 
 
@@ -190,6 +198,7 @@ Scene::initGL() {
         m_textures << texture;
         m_renderOptions->addTexture(file.baseName());
     }
+    nTextures = m_textures.size();
 
     if (m_textures.size() == 0)
         m_textures << new GLTexture2D(qMin(64, m_maxTextureSize), qMin(64, m_maxTextureSize));
@@ -328,7 +337,7 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
 
     if (-1 != excludeBox) {
         QMatrix4x4 m;
-        m.rotate(m_trackBalls[0].rotation());
+        m.rotate(QQuaternion(q0, q1, q2, q3));
         glMultMatrixf(m.constData());
 
         if (glActiveTexture) {
@@ -677,3 +686,38 @@ Scene::newItem(ItemDialog::ItemType type) {
         break;
     }
 }
+
+
+void
+Scene::executeCommand(QString command) {
+    QStringList tokens = command.split(' ');
+    tokens.removeFirst();
+    char cmd = command.at(0).toLatin1();
+    if(cmd == 'q') { // It is a Quaternion !
+        if(tokens.count() == 4) {
+            q0 = tokens.at(0).toDouble();
+            q1 = tokens.at(1).toDouble();
+            q2 = tokens.at(2).toDouble();
+            q3 = tokens.at(3).toDouble();
+        }
+    }
+}
+
+
+void
+Scene::onReadPendingDatagrams() {
+    while(pUdpSocket->hasPendingDatagrams()) {
+        QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
+        QString sReceived = QString(datagram.data());
+        QString sNewCommand;
+        int iPos;
+        iPos = sReceived.indexOf("#");
+        while(iPos != -1) {
+            sNewCommand = sReceived.left(iPos);
+            executeCommand(sNewCommand);
+            sReceived = sReceived.mid(iPos+1);
+            iPos = sReceived.indexOf("#");
+        }
+    }
+}
+

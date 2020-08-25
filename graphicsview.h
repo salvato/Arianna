@@ -52,24 +52,15 @@
 #include "scene.h"
 
 
-#include <QtWidgets>
-#include <QUdpSocket>
-
-
 class GraphicsView : public QGraphicsView
 {
 public:
     GraphicsView();
 
 public slots:
-    void onReadPendingDatagrams();
 
 protected:
     void
     resizeEvent(QResizeEvent *event) override;
-    void executeCommand(QString command);
-
-    QUdpSocket*  pUdpSocket;
-    int          udpPort;
 };
 
