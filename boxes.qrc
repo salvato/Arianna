@@ -1,25 +1,33 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource prefix="/res/boxes">
-    <file>cubemap_negx.jpg</file>
-    <file>cubemap_negy.jpg</file>
-    <file>cubemap_negz.jpg</file>
-    <file>cubemap_posx.jpg</file>
-    <file>cubemap_posy.jpg</file>
-    <file>cubemap_posz.jpg</file>
-    <file>square.jpg</file>
-    <file>basic.vsh</file>
-    <file>basic.fsh</file>
-    <file>dotted.fsh</file>
-    <file>fresnel.fsh</file>
-    <file>glass.fsh</file>
-    <file>granite.fsh</file>
-    <file>marble.fsh</file>
-    <file>reflection.fsh</file>
-    <file>refraction.fsh</file>
-    <file>wood.fsh</file>
-    <file>parameters.par</file>
-    <file>qt-logo.png</file>
-    <file>smiley.png</file>
-    <file>qt-logo.jpg</file>
-</qresource>
+<RCC>
+    <qresource prefix="/res/boxes">
+        <file>cubemap_negx.jpg</file>
+        <file>cubemap_negy.jpg</file>
+        <file>cubemap_negz.jpg</file>
+        <file>cubemap_posx.jpg</file>
+        <file>cubemap_posy.jpg</file>
+        <file>cubemap_posz.jpg</file>
+        <file>square.jpg</file>
+        <file>basic.vsh</file>
+        <file>basic.fsh</file>
+        <file>dotted.fsh</file>
+        <file>fresnel.fsh</file>
+        <file>glass.fsh</file>
+        <file>granite.fsh</file>
+        <file>marble.fsh</file>
+        <file>reflection.fsh</file>
+        <file>refraction.fsh</file>
+        <file>wood.fsh</file>
+        <file>parameters.par</file>
+        <file>qt-logo.png</file>
+        <file>smiley.png</file>
+        <file>qt-logo.jpg</file>
+        <file>alvin.png</file>
+        <file>catboy.png</file>
+        <file>cinzia.png</file>
+        <file>frozen.png</file>
+        <file>gekko.png</file>
+        <file>minnie.png</file>
+        <file>simon.png</file>
+        <file>theodore.png</file>
+    </qresource>
 </RCC>

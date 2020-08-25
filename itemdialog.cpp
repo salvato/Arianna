@@ -48,79 +48,63 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "scene.h"
 
-#include "glbuffers.h"
-#include "glextensions.h"
-#include "gltrianglemesh.h"
-#include "qtbox.h"
-#include "roundedbox.h"
-#include "trackball.h"
-#include "itemdialog.h"
-#include "renderoptionsdialog.h"
+#include <QMatrix4x4>
+#include <QRandomGenerator>
+#include <QVector3D>
+#include <qmath.h>
+
+#include "3rdparty/fbm.h"
 
 
-QT_BEGIN_NAMESPACE
-class QMatrix4x4;
-QT_END_NAMESPACE
+//============================================================================//
+//                                 ItemDialog                                 //
+//============================================================================//
 
-
-class Scene : public QGraphicsScene
+ItemDialog::ItemDialog()
+    : QDialog(nullptr, Qt::CustomizeWindowHint | Qt::WindowTitleHint)
 {
-    Q_OBJECT
-public:
-    Scene(int width, int height, int maxTextureSize);
-    ~Scene();
-    void drawBackground(QPainter *painter, const QRectF &rect) override;
+    setWindowTitle(tr("Items (double click to flip)"));
+    setWindowOpacity(0.75);
+    resize(160, 100);
 
-public slots:
-    void setShader(int index);
-    void setTexture(int index);
-    void toggleDynamicCubemap(int state);
-    void setColorParameter(const QString &name, QRgb color);
-    void setFloatParameter(const QString &name, float value);
-    void newItem(ItemDialog::ItemType type);
+    QVBoxLayout *layout = new QVBoxLayout;
+    setLayout(layout);
+    QPushButton *button;
 
-protected:
-    void renderBoxes(const QMatrix4x4 &view, int excludeBox = -2);
-    void setStates();
-    void setLights();
-    void defaultStates();
-    void renderCubemaps();
+    button = new QPushButton(tr("Add Qt box"));
+    layout->addWidget(button);
+    connect(button, &QAbstractButton::clicked, this, &ItemDialog::triggerNewQtBox);
 
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    void wheelEvent(QGraphicsSceneWheelEvent * event) override;
+    button = new QPushButton(tr("Add circle"));
+    layout->addWidget(button);
+    connect(button, &QAbstractButton::clicked, this, &ItemDialog::triggerNewCircleItem);
 
-private:
-    void initGL();
-    QPointF pixelPosToViewPos(const QPointF& p);
+    button = new QPushButton(tr("Add square"));
+    layout->addWidget(button);
+    connect(button, &QAbstractButton::clicked, this, &ItemDialog::triggerNewSquareItem);
 
-    int m_lastTime;
-    int m_mouseEventTime;
-    int m_distExp;
-    int m_frame;
-    int m_maxTextureSize;
+    layout->addStretch(1);
+}
 
-    int m_currentShader;
-    int m_currentTexture;
-    bool m_dynamicCubemap;
-    bool m_updateAllCubemaps;
+void ItemDialog::triggerNewQtBox()
+{
+    emit newItemTriggered(QtBoxItem);
+}
 
-    RenderOptionsDialog *m_renderOptions;
-    ItemDialog *m_itemDialog;
-    QTimer *m_timer;
-    GLRoundedBox *m_box;
-    TrackBall m_trackBalls[3];
-    QVector<GLTexture *> m_textures;
-    GLTextureCube *m_environment;
-    GLTexture3D *m_noise;
-    GLRenderTargetCube *m_mainCubemap;
-    QVector<GLRenderTargetCube *> m_cubemaps;
-    QVector<QGLShaderProgram *> m_programs;
-    QGLShader *m_vertexShader;
-    QVector<QGLShader *> m_fragmentShaders;
-    QGLShader *m_environmentShader;
-    QGLShaderProgram *m_environmentProgram;
-};
+void ItemDialog::triggerNewCircleItem()
+{
+    emit newItemTriggered(CircleItem);
+}
+
+void ItemDialog::triggerNewSquareItem()
+{
+    emit newItemTriggered(SquareItem);
+}
+
+void ItemDialog::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+        emit doubleClicked();
+}

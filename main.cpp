@@ -50,26 +50,11 @@
 
 #include "glextensions.h"
 #include "scene.h"
+#include "graphicsview.h"
 
 #include <QGLWidget>
 #include <QtWidgets>
-
-class GraphicsView : public QGraphicsView
-{
-public:
-    GraphicsView() {
-        setWindowTitle(tr("Boxes"));
-        setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    }
-
-protected:
-    void
-    resizeEvent(QResizeEvent *event) override {
-        if(scene())
-            scene()->setSceneRect(QRect(QPoint(0, 0), event->size()));
-        QGraphicsView::resizeEvent(event);
-    }
-};
+#include <QUdpSocket>
 
 
 inline bool

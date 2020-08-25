@@ -48,79 +48,72 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "coloredit.h"
+#include <QHBoxLayout>
+#include <QMouseEvent>
+#include <QColorDialog>
 
-#include "glbuffers.h"
-#include "glextensions.h"
-#include "gltrianglemesh.h"
-#include "qtbox.h"
-#include "roundedbox.h"
-#include "trackball.h"
-#include "itemdialog.h"
-#include "renderoptionsdialog.h"
+//============================================================================//
+//                                  ColorEdit                                 //
+//============================================================================//
 
-
-QT_BEGIN_NAMESPACE
-class QMatrix4x4;
-QT_END_NAMESPACE
-
-
-class Scene : public QGraphicsScene
+ColorEdit::ColorEdit(QRgb initialColor, int id)
+    : m_color(initialColor)
+    , m_id(id)
 {
-    Q_OBJECT
-public:
-    Scene(int width, int height, int maxTextureSize);
-    ~Scene();
-    void drawBackground(QPainter *painter, const QRectF &rect) override;
+    QHBoxLayout *layout = new QHBoxLayout;
+    setLayout(layout);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-public slots:
-    void setShader(int index);
-    void setTexture(int index);
-    void toggleDynamicCubemap(int state);
-    void setColorParameter(const QString &name, QRgb color);
-    void setFloatParameter(const QString &name, float value);
-    void newItem(ItemDialog::ItemType type);
+    m_lineEdit = new QLineEdit(QString::number(m_color, 16));
+    layout->addWidget(m_lineEdit);
 
-protected:
-    void renderBoxes(const QMatrix4x4 &view, int excludeBox = -2);
-    void setStates();
-    void setLights();
-    void defaultStates();
-    void renderCubemaps();
+    m_button = new QFrame;
+    QPalette palette = m_button->palette();
+    palette.setColor(QPalette::Window, QColor(m_color));
+    m_button->setPalette(palette);
+    m_button->setAutoFillBackground(true);
+    m_button->setMinimumSize(32, 0);
+    m_button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    m_button->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    layout->addWidget(m_button);
 
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    void wheelEvent(QGraphicsSceneWheelEvent * event) override;
+    connect(m_lineEdit, &QLineEdit::editingFinished, this, &ColorEdit::editDone);
+}
 
-private:
-    void initGL();
-    QPointF pixelPosToViewPos(const QPointF& p);
 
-    int m_lastTime;
-    int m_mouseEventTime;
-    int m_distExp;
-    int m_frame;
-    int m_maxTextureSize;
+void
+ColorEdit::editDone() {
+    bool ok;
+    QRgb newColor = m_lineEdit->text().toUInt(&ok, 16);
+    if (ok)
+        setColor(newColor);
+}
 
-    int m_currentShader;
-    int m_currentTexture;
-    bool m_dynamicCubemap;
-    bool m_updateAllCubemaps;
 
-    RenderOptionsDialog *m_renderOptions;
-    ItemDialog *m_itemDialog;
-    QTimer *m_timer;
-    GLRoundedBox *m_box;
-    TrackBall m_trackBalls[3];
-    QVector<GLTexture *> m_textures;
-    GLTextureCube *m_environment;
-    GLTexture3D *m_noise;
-    GLRenderTargetCube *m_mainCubemap;
-    QVector<GLRenderTargetCube *> m_cubemaps;
-    QVector<QGLShaderProgram *> m_programs;
-    QGLShader *m_vertexShader;
-    QVector<QGLShader *> m_fragmentShaders;
-    QGLShader *m_environmentShader;
-    QGLShaderProgram *m_environmentProgram;
-};
+void
+ColorEdit::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        QColor color(m_color);
+        QColorDialog dialog(color, nullptr);
+        dialog.setOption(QColorDialog::ShowAlphaChannel, true);
+        dialog.move(280, 120);
+        if (dialog.exec() == QDialog::Rejected)
+            return;
+        QRgb newColor = dialog.selectedColor().rgba();
+        if (newColor == m_color)
+            return;
+        setColor(newColor);
+    }
+}
+
+
+void
+ColorEdit::setColor(QRgb color) {
+    m_color = color;
+    m_lineEdit->setText(QString::number(m_color, 16)); // "Clean up" text
+    QPalette palette = m_button->palette();
+    palette.setColor(QPalette::Window, QColor(m_color));
+    m_button->setPalette(palette);
+    emit colorChanged(m_color, m_id);
+}

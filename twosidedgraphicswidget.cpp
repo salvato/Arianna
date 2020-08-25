@@ -48,79 +48,74 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "twosidedgraphicswidget.h"
+#include "graphicswidget.h"
 
-#include "glbuffers.h"
-#include "glextensions.h"
-#include "gltrianglemesh.h"
-#include "qtbox.h"
-#include "roundedbox.h"
-#include "trackball.h"
-#include "itemdialog.h"
-#include "renderoptionsdialog.h"
+#include <QTimer>
+#include <QGraphicsScene>
 
 
-QT_BEGIN_NAMESPACE
-class QMatrix4x4;
-QT_END_NAMESPACE
+//============================================================================//
+//                           TwoSidedGraphicsWidget                           //
+//============================================================================//
+void
+TwoSidedGraphicsWidget::setWidget(int index, QWidget *widget) {
+    if (index < 0 || index >= 2) {
+        qWarning("TwoSidedGraphicsWidget::setWidget: Index out of bounds, index == %d", index);
+        return;
+    }
+
+    GraphicsWidget *proxy = new GraphicsWidget;
+    proxy->setWidget(widget);
+
+    delete m_proxyWidgets[index];
+    m_proxyWidgets[index] = proxy;
+
+    proxy->setCacheMode(QGraphicsItem::ItemCoordinateCache);
+    proxy->setZValue(1e30); // Make sure the dialog is drawn on top of all other (OpenGL) items
+
+    if (index != m_current)
+        proxy->setVisible(false);
+
+    qobject_cast<QGraphicsScene *>(parent())->addItem(proxy);
+}
 
 
-class Scene : public QGraphicsScene
-{
-    Q_OBJECT
-public:
-    Scene(int width, int height, int maxTextureSize);
-    ~Scene();
-    void drawBackground(QPainter *painter, const QRectF &rect) override;
+QWidget*
+TwoSidedGraphicsWidget::widget(int index) {
+    if (index < 0 || index >= 2) {
+        qWarning("TwoSidedGraphicsWidget::widget: Index out of bounds, index == %d", index);
+        return nullptr;
+    }
+    return m_proxyWidgets[index]->widget();
+}
 
-public slots:
-    void setShader(int index);
-    void setTexture(int index);
-    void toggleDynamicCubemap(int state);
-    void setColorParameter(const QString &name, QRgb color);
-    void setFloatParameter(const QString &name, float value);
-    void newItem(ItemDialog::ItemType type);
 
-protected:
-    void renderBoxes(const QMatrix4x4 &view, int excludeBox = -2);
-    void setStates();
-    void setLights();
-    void defaultStates();
-    void renderCubemaps();
+void
+TwoSidedGraphicsWidget::flip() {
+    m_delta = (m_current == 0 ? 9 : -9);
+    animateFlip();
+}
 
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    void wheelEvent(QGraphicsSceneWheelEvent * event) override;
 
-private:
-    void initGL();
-    QPointF pixelPosToViewPos(const QPointF& p);
+void
+TwoSidedGraphicsWidget::animateFlip() {
+    m_angle += m_delta;
+    if (m_angle == 90) {
+        int old = m_current;
+        m_current ^= 1;
+        m_proxyWidgets[old]->setVisible(false);
+        m_proxyWidgets[m_current]->setVisible(true);
+        m_proxyWidgets[m_current]->setGeometry(m_proxyWidgets[old]->geometry());
+    }
 
-    int m_lastTime;
-    int m_mouseEventTime;
-    int m_distExp;
-    int m_frame;
-    int m_maxTextureSize;
+    QRectF r = m_proxyWidgets[m_current]->boundingRect();
+    m_proxyWidgets[m_current]->setTransform(QTransform()
+        .translate(r.width() / 2, r.height() / 2)
+        .rotate(m_angle - 180 * m_current, Qt::YAxis)
+        .translate(-r.width() / 2, -r.height() / 2));
 
-    int m_currentShader;
-    int m_currentTexture;
-    bool m_dynamicCubemap;
-    bool m_updateAllCubemaps;
+    if ((m_current == 0 && m_angle > 0) || (m_current == 1 && m_angle < 180))
+        QTimer::singleShot(25, this, &TwoSidedGraphicsWidget::animateFlip);
+}
 
-    RenderOptionsDialog *m_renderOptions;
-    ItemDialog *m_itemDialog;
-    QTimer *m_timer;
-    GLRoundedBox *m_box;
-    TrackBall m_trackBalls[3];
-    QVector<GLTexture *> m_textures;
-    GLTextureCube *m_environment;
-    GLTexture3D *m_noise;
-    GLRenderTargetCube *m_mainCubemap;
-    QVector<GLRenderTargetCube *> m_cubemaps;
-    QVector<QGLShaderProgram *> m_programs;
-    QGLShader *m_vertexShader;
-    QVector<QGLShader *> m_fragmentShaders;
-    QGLShader *m_environmentShader;
-    QGLShaderProgram *m_environmentProgram;
-};

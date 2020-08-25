@@ -50,77 +50,35 @@
 
 #pragma once
 
-#include "glbuffers.h"
-#include "glextensions.h"
-#include "gltrianglemesh.h"
-#include "qtbox.h"
-#include "roundedbox.h"
-#include "trackball.h"
-#include "itemdialog.h"
-#include "renderoptionsdialog.h"
+#include "parameteredit.h"
+#include <QGraphicsScene>
+#include <QLineEdit>
+#include <QFrame>
 
 
-QT_BEGIN_NAMESPACE
-class QMatrix4x4;
-QT_END_NAMESPACE
-
-
-class Scene : public QGraphicsScene
+class ColorEdit : public ParameterEdit
 {
     Q_OBJECT
 public:
-    Scene(int width, int height, int maxTextureSize);
-    ~Scene();
-    void drawBackground(QPainter *painter, const QRectF &rect) override;
+    ColorEdit(QRgb initialColor, int id);
+    QRgb color() const {return m_color;}
+    void emitChange() override { emit colorChanged(m_color, m_id); }
 
 public slots:
-    void setShader(int index);
-    void setTexture(int index);
-    void toggleDynamicCubemap(int state);
-    void setColorParameter(const QString &name, QRgb color);
-    void setFloatParameter(const QString &name, float value);
-    void newItem(ItemDialog::ItemType type);
+    void editDone();
+
+signals:
+    void colorChanged(QRgb color, int id);
 
 protected:
-    void renderBoxes(const QMatrix4x4 &view, int excludeBox = -2);
-    void setStates();
-    void setLights();
-    void defaultStates();
-    void renderCubemaps();
-
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    void wheelEvent(QGraphicsSceneWheelEvent * event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void setColor(QRgb color); // also emits colorChanged()
 
 private:
-    void initGL();
-    QPointF pixelPosToViewPos(const QPointF& p);
-
-    int m_lastTime;
-    int m_mouseEventTime;
-    int m_distExp;
-    int m_frame;
-    int m_maxTextureSize;
-
-    int m_currentShader;
-    int m_currentTexture;
-    bool m_dynamicCubemap;
-    bool m_updateAllCubemaps;
-
-    RenderOptionsDialog *m_renderOptions;
-    ItemDialog *m_itemDialog;
-    QTimer *m_timer;
-    GLRoundedBox *m_box;
-    TrackBall m_trackBalls[3];
-    QVector<GLTexture *> m_textures;
-    GLTextureCube *m_environment;
-    GLTexture3D *m_noise;
-    GLRenderTargetCube *m_mainCubemap;
-    QVector<GLRenderTargetCube *> m_cubemaps;
-    QVector<QGLShaderProgram *> m_programs;
-    QGLShader *m_vertexShader;
-    QVector<QGLShader *> m_fragmentShaders;
-    QGLShader *m_environmentShader;
-    QGLShaderProgram *m_environmentProgram;
+    QGraphicsScene *m_dialogParentScene;
+    QLineEdit *m_lineEdit;
+    QFrame *m_button;
+    QRgb m_color;
+    int m_id;
 };
+
