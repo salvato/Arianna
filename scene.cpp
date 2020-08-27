@@ -127,6 +127,9 @@ Scene::Scene(int width, int height, int maxTextureSize)
     // Network UDP events
     connect(pUdpSocket, SIGNAL(readyRead()),
             this, SLOT(onReadPendingDatagrams()));
+    connect(&timerTexture, SIGNAL(timeout()),
+            this, SLOT(onChangeTexture()));
+    timerTexture.start(30000);
 }
 
 
@@ -199,6 +202,7 @@ Scene::initGL() {
         m_renderOptions->addTexture(file.baseName());
     }
     nTextures = m_textures.size();
+    currentTexture = 0;
 
     if (m_textures.size() == 0)
         m_textures << new GLTexture2D(qMin(64, m_maxTextureSize), qMin(64, m_maxTextureSize));
@@ -721,3 +725,11 @@ Scene::onReadPendingDatagrams() {
     }
 }
 
+
+void
+Scene::onChangeTexture() {
+    currentTexture += 1;
+    if(currentTexture >= nTextures)
+        currentTexture = 0;
+    setTexture(currentTexture);
+}

@@ -18,6 +18,7 @@ HEADERS += 3rdparty/fbm.h \
            graphicsview.h \
            graphicswidget.h \
            itemdialog.h \
+           parameteredit.h \
            qtbox.h \
            renderoptionsdialog.h \
            roundedbox.h \
