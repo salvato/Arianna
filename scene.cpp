@@ -95,11 +95,16 @@ Scene::Scene(int width, int height, int maxTextureSize)
     m_renderOptions->move(20, 120);
     m_renderOptions->resize(m_renderOptions->sizeHint());
 
-    connect(m_renderOptions, &RenderOptionsDialog::dynamicCubemapToggled, this, &Scene::toggleDynamicCubemap);
-    connect(m_renderOptions, &RenderOptionsDialog::colorParameterChanged, this, &Scene::setColorParameter);
-    connect(m_renderOptions, &RenderOptionsDialog::floatParameterChanged, this, &Scene::setFloatParameter);
-    connect(m_renderOptions, &RenderOptionsDialog::textureChanged, this, &Scene::setTexture);
-    connect(m_renderOptions, &RenderOptionsDialog::shaderChanged, this, &Scene::setShader);
+    connect(m_renderOptions, &RenderOptionsDialog::dynamicCubemapToggled,
+            this, &Scene::toggleDynamicCubemap);
+    connect(m_renderOptions, &RenderOptionsDialog::colorParameterChanged,
+            this, &Scene::setColorParameter);
+    connect(m_renderOptions, &RenderOptionsDialog::floatParameterChanged,
+            this, &Scene::setFloatParameter);
+    connect(m_renderOptions, &RenderOptionsDialog::textureChanged,
+            this, &Scene::setTexture);
+    connect(m_renderOptions, &RenderOptionsDialog::shaderChanged,
+            this, &Scene::setShader);
 
     m_itemDialog = new ItemDialog;
     connect(m_itemDialog, &ItemDialog::newItemTriggered, this, &Scene::newItem);
@@ -108,26 +113,30 @@ Scene::Scene(int width, int height, int maxTextureSize)
     twoSided->setWidget(0, m_renderOptions);
     twoSided->setWidget(1, m_itemDialog);
 
-    connect(m_renderOptions, &RenderOptionsDialog::doubleClicked, twoSided, &TwoSidedGraphicsWidget::flip);
-    connect(m_itemDialog, &ItemDialog::doubleClicked, twoSided, &TwoSidedGraphicsWidget::flip);
+    connect(m_renderOptions, &RenderOptionsDialog::doubleClicked,
+            twoSided, &TwoSidedGraphicsWidget::flip);
+    connect(m_itemDialog, &ItemDialog::doubleClicked, twoSided,
+            &TwoSidedGraphicsWidget::flip);
 
     initGL();
 
     m_timer = new QTimer(this);
     m_timer->setInterval(20);
-    connect(m_timer, &QTimer::timeout, this, [this](){ update(); });
+    connect(m_timer, &QTimer::timeout,
+            this, [this](){ update(); });
     m_timer->start();
 
+    // Network UDP event listener
     udpPort = 3333;
     pUdpSocket = new QUdpSocket(this);
     if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
         qDebug() << QString("Unable to bind... EXITING");
         exit(-1);
     }
-
-    // Network UDP events
     connect(pUdpSocket, SIGNAL(readyRead()),
             this, SLOT(onReadPendingDatagrams()));
+
+    // Timer to Change Texture
     connect(&timerTexture, SIGNAL(timeout()),
             this, SLOT(onChangeTexture()));
     timerTexture.start(30000);
@@ -468,21 +477,15 @@ Scene::renderCubemaps() {
     for (int i = m_frame % N; i < m_cubemaps.size(); i += N) {
         if (0 == m_cubemaps[i])
             continue;
-
         float angle = i * eachAngle;
-
         center = m_trackBalls[1].rotation().rotatedVector(QVector3D(std::cos(angle), std::sin(angle), 0.0f));
-
         for (int face = 0; face < 6; ++face) {
             m_cubemaps[i]->begin(face);
-
             GLRenderTargetCube::getViewMatrix(mat, face);
             QVector4D v = QVector4D(-center.x(), -center.y(), -center.z(), 1.0);
             mat.setColumn(3, mat * v);
-
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             renderBoxes(mat, i);
-
             m_cubemaps[i]->end();
         }
     }
@@ -490,18 +493,14 @@ Scene::renderCubemaps() {
     for (int face = 0; face < 6; ++face) {
         m_mainCubemap->begin(face);
         GLRenderTargetCube::getViewMatrix(mat, face);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         renderBoxes(mat, -1);
-
         m_mainCubemap->end();
     }
 
     glPopMatrix();
-
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
-
     m_updateAllCubemaps = false;
 }
 
@@ -510,28 +509,20 @@ void
 Scene::drawBackground(QPainter *painter, const QRectF &) {
     float width = float(painter->device()->width());
     float height = float(painter->device()->height());
-
     painter->beginNativePainting();
     setStates();
-
     if (m_dynamicCubemap)
         renderCubemaps();
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glMatrixMode(GL_PROJECTION);
     qgluPerspective(60.0, width / height, 0.01, 15.0);
-
     glMatrixMode(GL_MODELVIEW);
-
     QMatrix4x4 view;
     view.rotate(m_trackBalls[2].rotation());
     view(2, 3) -= 2.0f * std::exp(m_distExp / 1200.0f);
     renderBoxes(view);
-
     defaultStates();
     ++m_frame;
-
     painter->endNativePainting();
 }
 
@@ -548,21 +539,18 @@ Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     QGraphicsScene::mouseMoveEvent(event);
     if (event->isAccepted())
         return;
-
     if (event->buttons() & Qt::LeftButton) {
         m_trackBalls[0].move(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     } else {
         m_trackBalls[0].release(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
     }
-
     if (event->buttons() & Qt::RightButton) {
         m_trackBalls[1].move(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     } else {
         m_trackBalls[1].release(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
     }
-
     if (event->buttons() & Qt::MidButton) {
         m_trackBalls[2].move(pixelPosToViewPos(event->scenePos()), QQuaternion());
         event->accept();
@@ -577,17 +565,14 @@ Scene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
     QGraphicsScene::mousePressEvent(event);
     if (event->isAccepted())
         return;
-
     if (event->buttons() & Qt::LeftButton) {
         m_trackBalls[0].push(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     }
-
     if (event->buttons() & Qt::RightButton) {
         m_trackBalls[1].push(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     }
-
     if (event->buttons() & Qt::MidButton) {
         m_trackBalls[2].push(pixelPosToViewPos(event->scenePos()), QQuaternion());
         event->accept();
@@ -600,17 +585,14 @@ Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
     QGraphicsScene::mouseReleaseEvent(event);
     if (event->isAccepted())
         return;
-
     if (event->button() == Qt::LeftButton) {
         m_trackBalls[0].release(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     }
-
     if (event->button() == Qt::RightButton) {
         m_trackBalls[1].release(pixelPosToViewPos(event->scenePos()), m_trackBalls[2].rotation().conjugated());
         event->accept();
     }
-
     if (event->button() == Qt::MidButton) {
         m_trackBalls[2].release(pixelPosToViewPos(event->scenePos()), QQuaternion());
         event->accept();
@@ -730,7 +712,6 @@ Scene::onReadPendingDatagrams() {
     while(pUdpSocket->hasPendingDatagrams()) {
         QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
         QByteArray received = datagram.data();
-//        float q[4];
         if(received.size() != 4*sizeof(float))
             qDebug() << "Size differs";
         else {
@@ -738,12 +719,8 @@ Scene::onReadPendingDatagrams() {
             memcpy(&q1, received.constData()+4,  4);
             memcpy(&q2, received.constData()+8,  4);
             memcpy(&q3, received.constData()+12, 4);
-            //qDebug() << q[0] << q[1] << q[2] << q[3];
-//            pGLWidget->setRotation(q);
-//            pGLWidget->update();
         }
     }
-//    }
 }
 
 
