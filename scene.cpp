@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
 **
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
@@ -64,7 +64,8 @@
 //                                    Scene                                   //
 //============================================================================//
 
-const static char environmentShaderText[] =
+const static char
+environmentShaderText[] =
     "uniform samplerCube env;"
     "void main() {"
         "gl_FragColor = textureCube(env, gl_TexCoord[1].xyz);"
@@ -117,7 +118,7 @@ Scene::Scene(int width, int height, int maxTextureSize)
     connect(m_timer, &QTimer::timeout, this, [this](){ update(); });
     m_timer->start();
 
-    udpPort = 37755;
+    udpPort = 3333;
     pUdpSocket = new QUdpSocket(this);
     if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
         qDebug() << QString("Unable to bind... EXITING");
@@ -154,8 +155,12 @@ Scene::initGL() {
     m_vertexShader->compileSourceFile(QLatin1String(":/res/boxes/basic.vsh"));
 
     QStringList list;
-    list << ":/res/boxes/cubemap_posx.jpg" << ":/res/boxes/cubemap_negx.jpg" << ":/res/boxes/cubemap_posy.jpg"
-         << ":/res/boxes/cubemap_negy.jpg" << ":/res/boxes/cubemap_posz.jpg" << ":/res/boxes/cubemap_negz.jpg";
+    list << ":/res/boxes/cubemap_posx.jpg"
+         << ":/res/boxes/cubemap_negx.jpg"
+         << ":/res/boxes/cubemap_posy.jpg"
+         << ":/res/boxes/cubemap_negy.jpg"
+         << ":/res/boxes/cubemap_posz.jpg"
+         << ":/res/boxes/cubemap_negz.jpg";
     m_environment = new GLTextureCube(list, qMin(1024, m_maxTextureSize));
     m_environmentShader = new QGLShader(QGLShader::Fragment);
     m_environmentShader->compileSourceCode(environmentShaderText);
@@ -616,11 +621,11 @@ Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
 void
 Scene::wheelEvent(QGraphicsSceneWheelEvent * event) {
     QGraphicsScene::wheelEvent(event);
-    if (!event->isAccepted()) {
+    if(!event->isAccepted()) {
         m_distExp += event->delta();
-        if (m_distExp < -8 * 120)
+        if(m_distExp < -8 * 120)
             m_distExp = -8 * 120;
-        if (m_distExp > 10 * 120)
+        if(m_distExp > 10 * 120)
             m_distExp = 10 * 120;
         event->accept();
     }
@@ -710,19 +715,35 @@ Scene::executeCommand(QString command) {
 
 void
 Scene::onReadPendingDatagrams() {
+//    while(pUdpSocket->hasPendingDatagrams()) {
+//        QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
+//        QString sReceived = QString(datagram.data());
+//        QString sNewCommand;
+//        int iPos;
+//        iPos = sReceived.indexOf("#");
+//        while(iPos != -1) {
+//            sNewCommand = sReceived.left(iPos);
+//            executeCommand(sNewCommand);
+//            sReceived = sReceived.mid(iPos+1);
+//            iPos = sReceived.indexOf("#");
+//        }
     while(pUdpSocket->hasPendingDatagrams()) {
         QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
-        QString sReceived = QString(datagram.data());
-        QString sNewCommand;
-        int iPos;
-        iPos = sReceived.indexOf("#");
-        while(iPos != -1) {
-            sNewCommand = sReceived.left(iPos);
-            executeCommand(sNewCommand);
-            sReceived = sReceived.mid(iPos+1);
-            iPos = sReceived.indexOf("#");
+        QByteArray received = datagram.data();
+//        float q[4];
+        if(received.size() != 4*sizeof(float))
+            qDebug() << "Size differs";
+        else {
+            memcpy(&q0, received.constData(),    4);
+            memcpy(&q1, received.constData()+4,  4);
+            memcpy(&q2, received.constData()+8,  4);
+            memcpy(&q3, received.constData()+12, 4);
+            //qDebug() << q[0] << q[1] << q[2] << q[3];
+//            pGLWidget->setRotation(q);
+//            pGLWidget->update();
         }
     }
+//    }
 }
 
 

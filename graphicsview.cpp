@@ -49,7 +49,6 @@
 ****************************************************************************/
 
 #include "graphicsview.h"
-#include <QNetworkDatagram>
 
 
 GraphicsView::GraphicsView() {

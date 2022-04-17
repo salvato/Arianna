@@ -134,7 +134,7 @@ private:
 
     QUdpSocket*  pUdpSocket;
     int          udpPort;
-    double       q0, q1, q2, q3;
+    float        q0, q1, q2, q3;
     int          nTextures;
     int          currentTexture;
     QTimer       timerTexture;

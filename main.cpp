@@ -126,7 +126,8 @@ main(int argc, char **argv) {
         return -3;
     }
 
-    widget->makeCurrent(); // The current context must be set before calling Scene's constructor
+    // The current context must be set before calling Scene's constructor
+    widget->makeCurrent();
     QSize size = qApp->screens()[0]->size();
     Scene scene(size.width(), size.height(), maxTextureSize);
     GraphicsView view;
