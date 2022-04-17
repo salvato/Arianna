@@ -99,8 +99,6 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
     void wheelEvent(QGraphicsSceneWheelEvent * event) override;
 
-    void executeCommand(QString command);
-
 private:
     void initGL();
     QPointF pixelPosToViewPos(const QPointF& p);

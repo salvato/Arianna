@@ -83,6 +83,8 @@ Scene::Scene(int width, int height, int maxTextureSize)
     , m_vertexShader(nullptr)
     , m_environmentShader(nullptr)
     , m_environmentProgram(nullptr)
+    , udpPort(3333)
+
 {
     setSceneRect(0, 0, width, height);
     nTextures = 0;
@@ -127,7 +129,6 @@ Scene::Scene(int width, int height, int maxTextureSize)
     m_timer->start();
 
     // Network UDP event listener
-    udpPort = 3333;
     pUdpSocket = new QUdpSocket(this);
     if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
         qDebug() << QString("Unable to bind... EXITING");
@@ -159,10 +160,8 @@ Scene::~Scene() {
 void
 Scene::initGL() {
     m_box = new GLRoundedBox(0.25f, 1.0f, 10);
-
     m_vertexShader = new QGLShader(QGLShader::Vertex);
     m_vertexShader->compileSourceFile(QLatin1String(":/res/boxes/basic.vsh"));
-
     QStringList list;
     list << ":/res/boxes/cubemap_posx.jpg"
          << ":/res/boxes/cubemap_negx.jpg"
@@ -177,7 +176,6 @@ Scene::initGL() {
     m_environmentProgram->addShader(m_vertexShader);
     m_environmentProgram->addShader(m_environmentShader);
     m_environmentProgram->link();
-
     const int NOISE_SIZE = 128; // for a different size, B and BM in fbm.c must also be changed
     m_noise = new GLTexture3D(NOISE_SIZE, NOISE_SIZE, NOISE_SIZE);
     QVector<QRgb> data(NOISE_SIZE * NOISE_SIZE * NOISE_SIZE, QRgb(0));
@@ -197,15 +195,11 @@ Scene::initGL() {
         }
     }
     m_noise->load(NOISE_SIZE, NOISE_SIZE, NOISE_SIZE, data.data());
-
     m_mainCubemap = new GLRenderTargetCube(512);
-
     QList<QFileInfo> files;
-
     // Load all .png files as textures
     m_currentTexture = 0;
     files = QDir(":/res/boxes/").entryInfoList({ QStringLiteral("*.png") }, QDir::Files | QDir::Readable);
-
     for (const QFileInfo &file : qAsConst(files)) {
         GLTexture *texture = new GLTexture2D(file.absoluteFilePath(), qMin(256, m_maxTextureSize), qMin(256, m_maxTextureSize));
         if (texture->failed()) {
@@ -217,10 +211,8 @@ Scene::initGL() {
     }
     nTextures = m_textures.size();
     currentTexture = 0;
-
     if (m_textures.size() == 0)
         m_textures << new GLTexture2D(qMin(64, m_maxTextureSize), qMin(64, m_maxTextureSize));
-
     // Load all .fsh files as fragment shaders
     m_currentShader = 0;
     files = QDir(":/res/boxes/").entryInfoList({ QStringLiteral("*.fsh") }, QDir::Files | QDir::Readable);
@@ -239,24 +231,19 @@ Scene::initGL() {
             qWarning() << shader->log();
             qWarning("Shader program log:");
             qWarning() << program->log();
-
             delete shader;
             delete program;
             continue;
         }
-
         m_fragmentShaders << shader;
         m_programs << program;
         m_renderOptions->addShader(file.baseName());
-
         program->bind();
         m_cubemaps << ((program->uniformLocation("env") != -1) ? new GLRenderTargetCube(qMin(256, m_maxTextureSize)) : nullptr);
         program->release();
     }
-
     if (m_programs.size() == 0)
         m_programs << new QGLShaderProgram;
-
     m_renderOptions->emitParameterChanged();
 }
 
@@ -277,7 +264,6 @@ loadMatrix(const QMatrix4x4 &m) {
 void
 Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
     QMatrix4x4 invView = view.inverted();
-
     // If multi-texturing is supported, use three saplers.
     if (glActiveTexture) {
         glActiveTexture(GL_TEXTURE0);
@@ -288,17 +274,14 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
     } else {
         m_textures[m_currentTexture]->bind();
     }
-
     glDisable(GL_LIGHTING);
     glDisable(GL_CULL_FACE);
-
     QMatrix4x4 viewRotation(view);
     viewRotation(3, 0) = viewRotation(3, 1) = viewRotation(3, 2) = 0.0f;
     viewRotation(0, 3) = viewRotation(1, 3) = viewRotation(2, 3) = 0.0f;
     viewRotation(3, 3) = 1.0f;
     loadMatrix(viewRotation);
     glScalef(20.0f, 20.0f, 20.0f);
-
     // Don't render the environment if the environment texture can't be set for the correct sampler.
     if (glActiveTexture) {
         m_environment->bind();
@@ -310,21 +293,16 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
         m_environmentProgram->release();
         m_environment->unbind();
     }
-
     loadMatrix(view);
-
     glEnable(GL_CULL_FACE);
     glEnable(GL_LIGHTING);
-
     for (int i = 0; i < m_programs.size(); ++i) {
         if (i == excludeBox)
             continue;
-
         glPushMatrix();
         QMatrix4x4 m;
         m.rotate(m_trackBalls[1].rotation());
         glMultMatrixf(m.constData());
-
         glRotatef(360.0f * i / m_programs.size(), 0.0f, 0.0f, 1.0f);
         glTranslatef(2.0f, 0.0f, 0.0f);
         glScalef(0.3f, 0.6f, 0.6f);
@@ -343,7 +321,6 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
         m_programs[i]->setUniformValue("invView", invView);
         m_box->draw();
         m_programs[i]->release();
-
         if (glActiveTexture) {
             if (m_dynamicCubemap && m_cubemaps[i])
                 m_cubemaps[i]->unbind();
@@ -352,19 +329,16 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
         }
         glPopMatrix();
     }
-
     if (-1 != excludeBox) {
         QMatrix4x4 m;
         m.rotate(QQuaternion(q0, q1, q2, q3));
         glMultMatrixf(m.constData());
-
         if (glActiveTexture) {
             if (m_dynamicCubemap)
                 m_mainCubemap->bind();
             else
                 m_environment->bind();
         }
-
         m_programs[m_currentShader]->bind();
         m_programs[m_currentShader]->setUniformValue("tex", GLint(0));
         m_programs[m_currentShader]->setUniformValue("env", GLint(1));
@@ -373,7 +347,6 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
         m_programs[m_currentShader]->setUniformValue("invView", invView);
         m_box->draw();
         m_programs[m_currentShader]->release();
-
         if (glActiveTexture) {
             if (m_dynamicCubemap)
                 m_mainCubemap->unbind();
@@ -381,7 +354,6 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
                 m_environment->unbind();
         }
     }
-
     if (glActiveTexture) {
         glActiveTexture(GL_TEXTURE2);
         m_noise->unbind();
@@ -394,24 +366,19 @@ Scene::renderBoxes(const QMatrix4x4 &view, int excludeBox) {
 void
 Scene::setStates() {
     //glClearColor(0.25f, 0.25f, 0.5f, 1.0f);
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_LIGHTING);
     //glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_NORMALIZE);
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-
     setLights();
-
     float materialSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 32.0f);
@@ -434,7 +401,6 @@ Scene::setLights() {
 void
 Scene::defaultStates() {
     //glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDisable(GL_LIGHTING);
@@ -442,13 +408,10 @@ Scene::defaultStates() {
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_LIGHT0);
     glDisable(GL_NORMALIZE);
-
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
-
     glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 0.0f);
     float defaultMaterialSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, defaultMaterialSpecular);
@@ -460,19 +423,14 @@ void
 Scene::renderCubemaps() {
     // To speed things up, only update the cubemaps for the small cubes every N frames.
     const int N = (m_updateAllCubemaps ? 1 : 3);
-
     QMatrix4x4 mat;
     GLRenderTargetCube::getProjectionMatrix(mat, 0.1f, 100.0f);
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     loadMatrix(mat);
-
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-
     QVector3D center;
-
     const float eachAngle = 2 * M_PI / m_cubemaps.size();
     for (int i = m_frame % N; i < m_cubemaps.size(); i += N) {
         if (0 == m_cubemaps[i])
@@ -489,7 +447,6 @@ Scene::renderCubemaps() {
             m_cubemaps[i]->end();
         }
     }
-
     for (int face = 0; face < 6; ++face) {
         m_mainCubemap->begin(face);
         GLRenderTargetCube::getViewMatrix(mat, face);
@@ -497,7 +454,6 @@ Scene::renderCubemaps() {
         renderBoxes(mat, -1);
         m_mainCubemap->end();
     }
-
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -680,35 +636,7 @@ Scene::newItem(ItemDialog::ItemType type) {
 
 
 void
-Scene::executeCommand(QString command) {
-    QStringList tokens = command.split(' ');
-    tokens.removeFirst();
-    char cmd = command.at(0).toLatin1();
-    if(cmd == 'q') { // It is a Quaternion !
-        if(tokens.count() == 4) {
-            q0 = tokens.at(0).toDouble();
-            q1 = tokens.at(1).toDouble();
-            q2 = tokens.at(2).toDouble();
-            q3 = tokens.at(3).toDouble();
-        }
-    }
-}
-
-
-void
 Scene::onReadPendingDatagrams() {
-//    while(pUdpSocket->hasPendingDatagrams()) {
-//        QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
-//        QString sReceived = QString(datagram.data());
-//        QString sNewCommand;
-//        int iPos;
-//        iPos = sReceived.indexOf("#");
-//        while(iPos != -1) {
-//            sNewCommand = sReceived.left(iPos);
-//            executeCommand(sNewCommand);
-//            sReceived = sReceived.mid(iPos+1);
-//            iPos = sReceived.indexOf("#");
-//        }
     while(pUdpSocket->hasPendingDatagrams()) {
         QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
         QByteArray received = datagram.data();
